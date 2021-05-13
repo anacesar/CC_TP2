@@ -12,17 +12,17 @@ public class ServerGW {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         String input = "";
-
+        /*
         while(!input.equals("HttpGW"))
             input = scanner.nextLine();
-
+*/
         scanner.close();
 
         HttpGW gateway = new HttpGW();
         
         new Thread(new UDPListener(gateway, udp_port)).start();
         new Thread(new TCPListener(gateway, tcp_port)).start();
-        System.out.println("Gateway is listenning to\nTCP port " + tcp_port + "\nUDP port " + udp_port);
+        System.out.println("Gateway is listenning to TCP port " + tcp_port + " UDP port " + udp_port);
 
     }
 }
