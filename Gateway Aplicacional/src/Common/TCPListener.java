@@ -4,12 +4,13 @@ import java.net.Socket;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 
 import Gateway.HttpGW;
-import jdk.javadoc.internal.doclets.formats.html.SourceToHTMLConverter;
 
 /* vai ficar a espera de conexoes pelo socket tcp */
 public class TCPListener implements Runnable {
@@ -31,13 +32,9 @@ public class TCPListener implements Runnable {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New connection from " + clientSocket.getInetAddress());
 
-                InputStream inputStream = clientSocket.getInputStream();
-                byte[] data = new byte[1448];
-
-                /* While the customer sends info keep sending packets */
-                int count = inputStream.read(data);
-
-                System.out.println(Arrays.toString(data));
+                BufferedReader breader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String httprequest = breader.readLine();
+                
                 // ClientConnection clientConnection = new ClientConnection(clientSocket);
                 // Connection clientConnection = new Connection(tcp_port);
 
