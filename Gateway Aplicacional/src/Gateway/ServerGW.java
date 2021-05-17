@@ -1,5 +1,6 @@
 package Gateway;
 
+import java.net.SocketException;
 import java.util.*;
 
 import Common.TCPListener;
@@ -15,10 +16,11 @@ public class ServerGW {
         /*
         while(!input.equals("HttpGW"))
             input = scanner.nextLine();
-*/
+        */
         scanner.close();
 
         HttpGW gateway = new HttpGW();
+        
         
         new Thread(new UDPListener(gateway, udp_port)).start();
         new Thread(new TCPListener(gateway, tcp_port)).start();
