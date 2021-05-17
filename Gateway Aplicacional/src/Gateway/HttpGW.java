@@ -44,7 +44,7 @@ public class HttpGW{
         FSChunkProtocol protocol = protocolCondition.get(nr_request);
 
         if(protocol == null){  /* create a new request */
-            protocol = new FSChunkProtocol(message, port, packet.getAddress(), packet.getAddress());
+            protocol = new FSChunkProtocol(message, packet.getPort(), packet.getAddress(), packet.getAddress());
             protocolCondition.put(nr_request, protocol);
             new Thread(protocol).start();
         }else{

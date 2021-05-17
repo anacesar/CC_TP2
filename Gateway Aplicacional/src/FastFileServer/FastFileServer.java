@@ -27,8 +27,6 @@ public class FastFileServer {
             sc.close();
         }
 
-        /* udp listener to be able to look for conections */
-        /* pito a pito enche o rito o bico */
         try{
             FastFileSrv ffserver = new FastFileSrv(port, server_address, path);
             ffserver.run();

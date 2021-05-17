@@ -12,6 +12,7 @@ import Common.Global;
 public class FastFileSrv {
     private int port;
     private InetAddress server_address;
+    private InetAddress ffs_address;
     private String files_path;
     private DatagramSocket udp_socket;
 
@@ -19,9 +20,9 @@ public class FastFileSrv {
         this.port = port;
         this.server_address = sAddress;
         this.files_path = files_path;
-        /* conects to socket */
-        System.out.println("Trying to conect to udp socket in port : " + port);
         this.udp_socket = new DatagramSocket();
+        this.ffs_address = udp_socket.getLocalAddress();
+        System.out.println("ffs address " + ffs_address);
         //udp_socket.bind(this.port);
     }
 
@@ -31,6 +32,7 @@ public class FastFileSrv {
 
         /* listening thread */
         new Thread(() -> {
+            //this.udp_socket.connect(server_address, port);
             try{
                 while(true){
                     /* Receive a packet from gateway(via protocol) */

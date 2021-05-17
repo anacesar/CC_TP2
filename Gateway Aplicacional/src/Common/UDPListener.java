@@ -45,10 +45,14 @@ public class UDPListener implements Runnable{
 
                 /* send message to gateway */
                 this.gateway.receive(receive);
+
+                Thread.sleep(2000);
+                this.udp_socket.send(receive);
+                System.out.println("sended receive to someone");
                 
             }
 
-        }catch(IOException e){
+        }catch(IOException | InterruptedException e){
             e.printStackTrace();
         }finally{
             udp_socket.close();

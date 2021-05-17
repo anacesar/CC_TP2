@@ -1,5 +1,6 @@
-package Common;
+package PDU;
 
+import Common.PDU;
 import Enum.TypeEnum;
 
 import java.nio.ByteBuffer;

@@ -1,4 +1,4 @@
-package Common;
+package PDU;
 
 import Enum.TypeEnum;
 

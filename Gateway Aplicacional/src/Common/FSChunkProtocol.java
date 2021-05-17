@@ -81,6 +81,7 @@ public class FSChunkProtocol implements Runnable{
             System.out.println("2 ) protocol received message seq_number " + seq_Number2 + " and port " + port2);
 
             udp_socket.send(new DatagramPacket(message2, message2.length, source_address, port));
+            System.out.println("protocol sending message to ip " + source_address.getHostAddress() + " and port " + port);
 
             /*
             ByteBuffer packet = ByteBuffer.allocate(8);
