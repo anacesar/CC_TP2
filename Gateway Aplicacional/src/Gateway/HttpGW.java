@@ -1,6 +1,7 @@
 package Gateway;
 
-import java.net.DatagramPacket;
+import java.io.OutputStream;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +16,7 @@ public class HttpGW{
     /* mapa cliente-connection */
     /* mapa cliente-list<pedidos> */
     /* pool de ffs */
-    //Map<FastFileServer,InetAddress> fastfileservers;
+    //Map<FastFileServer,SocketAddress> fastfileservers;
     //Map<InterAddress,FastFileServer> fastfileservers;
     /* id_request  */
     private ConcurrentHashMap<Integer, List<byte[]>> pdus;
@@ -34,8 +35,7 @@ public class HttpGW{
 
     public void receive(DatagramPacket packet){
         byte[] message = packet.getData();
-        //System.out.println("httpgw : " + new String(message));
-        
+
         int nr_request = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, 4)).getInt();
         int port = ByteBuffer.wrap(Arrays.copyOfRange(message, 4, 8)).getInt();
 
@@ -43,8 +43,10 @@ public class HttpGW{
         
         FSChunkProtocol protocol = protocolCondition.get(nr_request);
 
+        /* if its last pdu do stuff */
+
         if(protocol == null){  /* create a new request */
-            protocol = new FSChunkProtocol(message, packet.getPort(), packet.getAddress(), packet.getAddress());
+            protocol = new FSChunkProtocol(message, port, packet.getAddress(), packet.getAddress());
             protocolCondition.put(nr_request, protocol);
             new Thread(protocol).start();
         }else{
@@ -52,7 +54,12 @@ public class HttpGW{
         }
 
         /* create protocol */
-        
+
+    }
+
+
+    public void file_request(String filename, OutputStream out){
+        /* create pdu with nr_request to ask for filename in broadcast */
 
     }
     

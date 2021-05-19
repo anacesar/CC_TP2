@@ -33,6 +33,7 @@ public class FSChunkProtocol implements Runnable{
         this.port_answer = port;
         this.source_address = source_address;
         this.answer_address = answer_address;
+        System.out.println("Source address : " + source_address + " answer address "  + answer_address);
         this.answer_pdus = new ArrayList<>();
         this.lock = new ReentrantLock();
         this.empty_pdus = this.lock.newCondition();
@@ -49,6 +50,8 @@ public class FSChunkProtocol implements Runnable{
     public void run(){
         try {
             DatagramSocket udp_socket = new DatagramSocket();
+
+            /* connect socket to ffs ip and port */
 
             System.out.println("Protocol ready to control message : " + new String(message));
 
@@ -80,8 +83,8 @@ public class FSChunkProtocol implements Runnable{
 
             System.out.println("2 ) protocol received message seq_number " + seq_Number2 + " and port " + port2);
 
-            udp_socket.send(new DatagramPacket(message2, message2.length, source_address, port));
-            System.out.println("protocol sending message to ip " + source_address.getHostAddress() + " and port " + port);
+            udp_socket.send(new DatagramPacket(message2, message2.length, source_address, port2));
+            System.out.println("protocol sending message to ip " + source_address.getHostAddress() + " and port " + port2);
 
             /*
             ByteBuffer packet = ByteBuffer.allocate(8);

@@ -8,6 +8,7 @@ import java.net.SocketException;
 
 
 import Gateway.HttpGW;
+import PDU.PDU;
 
 public class UDPListener implements Runnable{
     private HttpGW gateway;
@@ -21,38 +22,37 @@ public class UDPListener implements Runnable{
         this.udp_port = my_port;
     }
 
-    
-    
+
+
     public void run(){
         try{
             this.udp_socket = new DatagramSocket(udp_port);
 
             while(true){
                 /* Receive a packet from FastFileServer */
-                System.out.println("waiting to receive pacotes ");
+                //System.out.println("waiting to receive pacotes in localip " + udp_socket.getLocalAddress().getHostAddress());
                 byte[] message = new byte[2000];
                 DatagramPacket receive = new DatagramPacket(message, message.length);
                 udp_socket.receive(receive);
                 System.out.println("received pacotes from source " + receive.getAddress().getHostAddress());
-                
-             
-                
-                //System.out.println(Global.byteArraytoHexString(message));
-                
-                /* PDU conversion
-                PDU packet = fromBytes(receive.getData(), receive.length());
-                new Thread(new FSChunkProtocol(port, address, packet)); */
+
+                /* PDU conversion*/
+                PDU packet = null;
+                packet.fromBytes(message, message.length);
+                System.out.println("pdu to string : " + packet.toString());
 
                 /* send message to gateway */
                 this.gateway.receive(receive);
 
+                /*
                 Thread.sleep(2000);
                 this.udp_socket.send(receive);
                 System.out.println("sended receive to someone");
+                 */
                 
             }
 
-        }catch(IOException | InterruptedException e){
+        }catch(IOException e){
             e.printStackTrace();
         }finally{
             udp_socket.close();

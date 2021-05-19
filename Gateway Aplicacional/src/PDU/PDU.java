@@ -2,10 +2,11 @@ package PDU;
 
 import Enum.TypeEnum;
 
-public abstract class PDU {
+public abstract class PDU implements Comparable<PDU>{
     private long checksum;
     private int flag;
     private TypeEnum type;
+
 
     public PDU(long checksum, int flag, TypeEnum type) {
         this.checksum = checksum;
@@ -38,6 +39,7 @@ public abstract class PDU {
         this.type = t;
     }
 
+    public abstract void fromBytes(byte[] pdu, int length) ;
     @Override
     public String toString() {
         return "PDU {" +
@@ -46,4 +48,10 @@ public abstract class PDU {
                 " , type= " + type +
                 '}';
     }
+
+
+    public int compareTo(DataPDU o){
+        return this.getSeq_number() - o.getSeq_number();
+    }
+
 }

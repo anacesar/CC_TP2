@@ -1,6 +1,6 @@
 package PDU;
 
-import Common.PDU;
+
 import Enum.TypeEnum;
 
 import java.nio.ByteBuffer;
@@ -36,17 +36,14 @@ public class DataPDU extends PDU {
 
 
     /* Obtains a PDU from a byte array that another server sent */
-    public void fromBytes(byte[] pdu, int length){
+    public void fromBytes(byte[] pdu, int length) {
         seq_number = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 0, 4)).getInt();
-        data = ByteBuffer.wrap(Arrays.copyOfRange(pdu,20,length)).array();
+        data = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 20, length)).array();
+
     }
 
     public int getSeq_number(){
         return this.seq_number;
-    }
-
-    public int compareTo(DataPDU o){
-        return this.getSeq_number() - o.getSeq_number();
     }
 
 

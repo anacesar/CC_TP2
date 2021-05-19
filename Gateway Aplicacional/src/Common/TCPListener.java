@@ -41,14 +41,14 @@ public class TCPListener implements Runnable {
 
                 /* thread to deal with client request */
 
-                new Thread(() -> {
-                     String[] sps= httprequest.split(" ");
-                     String[] sp= sps[1].split("/");
-                     String filename = sp[1];
+                String[] sps= httprequest.split(" ");
+                String[] sp= sps[1].split("/");
+                String filename = sp[1];
+                out.println(filename);
 
-                     out.println(filename);
-
-                }).start();
+                /* filename to pdu */
+                /* ask fot http get */
+                //this.gateway.receive();
 
 
             }

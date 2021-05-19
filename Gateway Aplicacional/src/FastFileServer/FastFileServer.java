@@ -16,6 +16,8 @@ public class FastFileServer {
         /* get server address and port */
         InetAddress server_address = InetAddress.getByName(args[0]);
         int port = Integer.parseInt(args[1]);
+        System.out.println("My ip " + InetAddress.getLocalHost().getHostAddress());
+
 
         /* ask for directory to share */
         String path; 
