@@ -54,15 +54,10 @@ public class FastFileSrv {
 
         /* ask for authentication */
         try{
-            PDU pdu = new PDU() {}
+            PDU pdu = new PDU(0,00,null);
+            
 
-            ByteBuffer packet = ByteBuffer.allocate(8);
-            packet.put(ByteBuffer.allocate(Integer.SIZE/8).putInt(1234).array());
-            packet.put(ByteBuffer.allocate(4).putInt(my_port).array());
-
-            byte[] message = packet.array();
-            //System.out.println("message : " + Global.byteArraytoHexString(message));
-            System.out.println("message2 : " + packet.toString());
+            byte[] message = pdu.toBytes();
 
 
             DatagramPacket packet_send = new DatagramPacket(message, message.length, server_address, port);

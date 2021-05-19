@@ -10,6 +10,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import Common.FSChunkProtocol;
+import PDU.PDU;
 
 public class HttpGW{
     
@@ -32,26 +33,39 @@ public class HttpGW{
 
     }
 
+    public void controlPDU(PDU pdu){
+        switch (pdu.getType()){
+            case 00: /* HELLO */
+                System.out.println("GW received fasfileserver HELLO");
+                new Thread(new FSChunkProtocol(new PDU(0, 01), pdu.getPort(), pdu.getInetAddress())).start();
+        }
+    }
 
-    public void receive(DatagramPacket packet){
-        byte[] message = packet.getData();
 
-        int nr_request = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, 4)).getInt();
-        int port = ByteBuffer.wrap(Arrays.copyOfRange(message, 4, 8)).getInt();
+    public void receive(PDU pdu){
 
-        System.out.println("HTTPGW !! nr_request " + nr_request + " and port " + port);
-        
         FSChunkProtocol protocol = protocolCondition.get(nr_request);
 
-        /* if its last pdu do stuff */
+        /* check for flag */
+        switch(pdu.getFlag()){
+            case 0:
+                controlPDU(pdu);
+                break;
+            case 1:
+                //dataPDU();
+                break;
+        }
 
-        if(protocol == null){  /* create a new request */
-            protocol = new FSChunkProtocol(message, port, packet.getAddress(), packet.getAddress());
+        /*
+        if(protocol == null){  // create a new request
+            protocol = new FSChunkProtocol(pdu, pdu.getPort(), pdu.getInetAddress());
             protocolCondition.put(nr_request, protocol);
             new Thread(protocol).start();
         }else{
-            protocol.pdu(message);
+            protocol.pdu(pdu);
         }
+
+        */
 
         /* create protocol */
 

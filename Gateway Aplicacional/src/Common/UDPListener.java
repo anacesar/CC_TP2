@@ -37,12 +37,14 @@ public class UDPListener implements Runnable{
                 System.out.println("received pacotes from source " + receive.getAddress().getHostAddress());
 
                 /* PDU conversion*/
-                PDU packet = null;
-                packet.fromBytes(message, message.length);
+                PDU packet = PDU.fromBytes(message, message.length);
+                packet.setInetAddress(receive.getAddress());
+                packet.setPort(receive.getPort());
                 System.out.println("pdu to string : " + packet.toString());
+                System.out.println("address : " + packet.getInetAddress() + " and port : " + packet.getPort());
 
                 /* send message to gateway */
-                this.gateway.receive(receive);
+                this.gateway.receive(packet);
 
                 /*
                 Thread.sleep(2000);
