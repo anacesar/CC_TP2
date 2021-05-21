@@ -1,14 +1,11 @@
 package Common;
 
-import java.io.InputStream;
 import java.lang.String;
-import java.net.DatagramSocket;
 import java.net.Socket;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.net.SocketException;
 
 import static java.lang.System.out;
 import Gateway.HttpGW;
@@ -38,9 +35,6 @@ public class TCPListener implements Runnable {
                 
                 out.println("Comando Recebido: " + httprequest);
 
-
-                /* thread to deal with client request */
-
                 String[] sps= httprequest.split(" ");
                 String[] sp= sps[1].split("/");
                 String filename = sp[1];
@@ -48,20 +42,15 @@ public class TCPListener implements Runnable {
 
                 /* filename to pdu */
                 /* ask fot http get */
-                //this.gateway.receive();
+                this.gateway.file_request(filename, clientSocket.getOutputStream());
 
 
             }
+            //serverSocket.close();
 
         }catch(IOException e) {
             e.printStackTrace();
-        }finally{
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
         }
+
     }
 }

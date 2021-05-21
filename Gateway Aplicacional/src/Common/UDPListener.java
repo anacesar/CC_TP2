@@ -37,7 +37,7 @@ public class UDPListener implements Runnable{
                 System.out.println("received pacotes from source " + receive.getAddress().getHostAddress());
 
                 /* PDU conversion*/
-                PDU packet = PDU.fromBytes(message, message.length);
+                PDU packet = PDU.fromBytes(message, receive.getLength());
                 packet.setInetAddress(receive.getAddress());
                 packet.setPort(receive.getPort());
                 System.out.println("pdu to string : " + packet.toString());
@@ -45,13 +45,6 @@ public class UDPListener implements Runnable{
 
                 /* send message to gateway */
                 this.gateway.receive(packet);
-
-                /*
-                Thread.sleep(2000);
-                this.udp_socket.send(receive);
-                System.out.println("sended receive to someone");
-                 */
-                
             }
 
         }catch(IOException e){

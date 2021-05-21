@@ -13,14 +13,6 @@ public class ServerGW {
     static int tcp_port = 8080;
     
     public static void main(String[] args) throws UnknownHostException {
-        Scanner scanner = new Scanner(System.in);
-        String input = "";
-        /*
-        while(!input.equals("HttpGW"))
-            input = scanner.nextLine();
-        */
-        scanner.close();
-
         HttpGW gateway = new HttpGW();
 
         System.out.println("My ip " + InetAddress.getLocalHost().getHostAddress());

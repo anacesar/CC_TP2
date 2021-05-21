@@ -3,6 +3,7 @@ package FastFileServer;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 
@@ -18,21 +19,18 @@ public class FastFileServer {
         int port = Integer.parseInt(args[1]);
         System.out.println("My ip " + InetAddress.getLocalHost().getHostAddress());
 
-
         /* ask for directory to share */
         String path; 
         if(args.length > 2) path = args[2];
         else{
-            System.out.println("Please enter path for directory to share: ");
-            Scanner sc = new Scanner(System.in);
-            path = sc.nextLine();
-            sc.close();
+            System.out.println("Please enter name of directory to share: ");
+            path = new Scanner(System.in).nextLine();
         }
 
         try{
             FastFileSrv ffserver = new FastFileSrv(port, server_address, path);
             ffserver.run();
-        }catch(SocketException e){
+        }catch(SocketException | InterruptedException e){
             e.printStackTrace();
             System.out.println("An error ocurred trying to open Socket!! ");
         }

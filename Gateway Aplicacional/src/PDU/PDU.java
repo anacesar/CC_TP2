@@ -17,17 +17,20 @@ public class PDU implements Comparable<PDU> {
     private InetAddress address;
     private int port;
 
+
     public PDU(int flag, int type) {
         //this.checksum = checksum;
         this.flag = flag;
         this.type = type;
+        this.seq_number = 0;
         this.data = new byte[1448];
     }
-    
-    public PDU(int flag, int type, byte[] data) {
+
+    public PDU(int flag, int type, int seq_number, byte[] data) {
         //this.checksum = checksum;
         this.flag = flag;
         this.type = type;
+        this.seq_number = seq_number;
         this.data = data.clone();
     }
 
@@ -61,6 +64,14 @@ public class PDU implements Comparable<PDU> {
         return this.seq_number;
     }
 
+    public byte[] getData(){
+        return this.data;
+    }
+
+    public void setData(byte[] data){
+        this.data = data.clone();
+    }
+
     public InetAddress getInetAddress(){ return this.address;}
 
     public void setInetAddress(InetAddress address){this.address = address;}
@@ -73,20 +84,20 @@ public class PDU implements Comparable<PDU> {
      public static PDU fromBytes(byte[] pdu, int length) {
         int flag = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 0, 4)).getInt();
         int type = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 4, 8)).getInt();
-         //seq_number = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 0, 4)).getInt();
-        byte[] data = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 8, length)).array();
+        int seq_number = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 8, 12)).getInt();
+        byte[] data = ByteBuffer.wrap(Arrays.copyOfRange(pdu, 12, length)).array();
 
-        return new PDU(flag,type,data);
+        return new PDU(flag,type,seq_number,data);
     }
 
     /* Transforms the PDU into a byte array ready to be sent*/
     public byte[] toBytes(){
-        ByteBuffer packet = ByteBuffer.allocate(8 + this.data.length);
+        ByteBuffer packet = ByteBuffer.allocate(12 + this.data.length);
 
         //packet.put(ByteBuffer.allocate(8).putLong(getChecksum()).array());
-        packet.put(ByteBuffer.allocate(4).putInt(getFlag()).array());
-        packet.put(ByteBuffer.allocate(4).putInt(getType()).array());
-        //packet.put(ByteBuffer.allocate(4).putInt(this.seq_number).array());
+        packet.put(ByteBuffer.allocate(4).putInt(this.flag).array());
+        packet.put(ByteBuffer.allocate(4).putInt(this.type).array());
+        packet.put(ByteBuffer.allocate(4).putInt(this.seq_number).array());
 
         packet.put(this.data);
 
@@ -94,13 +105,13 @@ public class PDU implements Comparable<PDU> {
     }
 
     public int compareTo(PDU o){
-        return this.getSeq_number() - o.getSeq_number();
+        return this.getType() - o.getType();
     }
     
     public String toString(){
         StringBuilder sb = new StringBuilder();
-        sb.append(": PDU : \n");
-        sb.append("flag = " + flag + " type = " + type + " data = " + data);
+        sb.append("| PDU | \n");
+        sb.append("flag = " + flag + " type = " + type + " seq_number " + seq_number + " data = " + data);
 
         return sb.toString();
     }
