@@ -69,6 +69,7 @@ public class FastFileSrv {
 
             raf.seek(offset);
             raf.read(data, 0, size);
+            //System.out.println("PDU : " + pdu.getType() + " : " + new String(data));
             /*is.skipNBytes(offset);
             is.read(data, 0, size);
             is.close();*/

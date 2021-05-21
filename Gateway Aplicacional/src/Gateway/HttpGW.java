@@ -71,18 +71,18 @@ public class HttpGW{
     private void http_response(int seq_number, String filename) {
         System.out.println("trying to get pdus with seq_number " + seq_number);
         File file = new File(filename);
-
-        for(PDU pdu : pdus.get(seq_number)){
-            try {
-                OutputStream os = new FileOutputStream(file);
+        try {
+            OutputStream os = new FileOutputStream(file);
+            for(PDU pdu : pdus.get(seq_number))
                 os.write(pdu.getData());
-                System.out.println("Write "+ pdu.getData().length +" bytes to file.");
-                os.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            //System.out.println("PDU : " + pdu.getType() + " : " + new String(pdu.getData()));
+            //System.out.println("Write "+ pdu.getData().length +" bytes to file.");
+            os.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
 
 
     public void dataPDU(PDU pdu){

@@ -118,14 +118,15 @@ public class FSChunkProtocol implements Runnable{
         int total_fragments = 1;
         if(filesize > DATASIZE){
             /* needs fragmentation*/
-            int nr_fragment = 2, offset =0; total_fragments = (int)filesize/(int)DATASIZE;
+            int rest = filesize%DATASIZE > 0 ? 1 : 0;
+            int nr_fragment = 2, offset =0; total_fragments = Math.round(filesize/DATASIZE) + rest;
             List<Integer> servers_port = new ArrayList<>(fastfileservers.keySet());
             System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
 
-            while(nr_fragment <= total_fragments +1){
+            while(nr_fragment <= total_fragments +2){
                 int nr_server = nr_fragment % nr_servers;
                 long size;
-                if(nr_fragment == total_fragments+1) size = filesize - (nr_fragment-1) * DATASIZE;
+                if(nr_fragment == total_fragments+2) size = filesize - (total_fragments-1) * DATASIZE; //filesize%DATASIZE
                 else size = DATASIZE;
 
                 ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + 2*Integer.BYTES + filename.length());
