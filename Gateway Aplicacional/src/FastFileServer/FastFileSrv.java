@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import Common.FSChunkProtocol;
+import Common.Global;
 import PDU.PDU;
 
 public class FastFileSrv {
@@ -28,7 +29,8 @@ public class FastFileSrv {
     public FastFileSrv(int port, InetAddress sAddress, String files_path) throws SocketException{
         this.port = port;
         this.server_address = sAddress;
-        this.files_path = System.getProperty("user.dir")+ "/src/" + files_path;
+        //this.files_path = System.getProperty("user.dir")+ "/src/" + files_path;
+        this.files_path = Global.makePath(System.getProperty("user.dir") , files_path);
         this.my_port = new Random().nextInt((2000 - 1000) + 1) + 1000;
         this.udp_socket = new DatagramSocket(my_port);
         this.ffs_address = this.udp_socket.getLocalAddress();
