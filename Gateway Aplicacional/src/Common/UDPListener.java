@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 
 
 import Gateway.HttpGW;
@@ -34,14 +33,11 @@ public class UDPListener implements Runnable{
                 byte[] message = new byte[2000];
                 DatagramPacket receive = new DatagramPacket(message, message.length);
                 udp_socket.receive(receive);
-                //System.out.println("received pacotes from source " + receive.getAddress().getHostAddress());
 
                 /* PDU conversion*/
                 PDU packet = PDU.fromBytes(message, receive.getLength());
                 packet.setInetAddress(receive.getAddress());
                 packet.setPort(receive.getPort());
-                //System.out.println("pdu to string : " + packet.toString());
-                //System.out.println("address : " + packet.getInetAddress() + " and port : " + packet.getPort());
 
                 /* send message to gateway */
                 this.gateway.receive(packet);

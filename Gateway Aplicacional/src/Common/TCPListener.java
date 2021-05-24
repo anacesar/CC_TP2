@@ -8,7 +8,6 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 
 import static java.lang.System.out;
-import static java.lang.System.setOut;
 
 import Gateway.HttpGW;
 

@@ -1,7 +1,6 @@
 package Common;
 
 public class Global {
-
         public static String makePath(String folder, String file){
             String[] so = System.getProperty("os.name").split(" ");
             String fullPath = null;

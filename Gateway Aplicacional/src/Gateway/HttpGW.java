@@ -1,16 +1,11 @@
 package Gateway;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.lang.reflect.ParameterizedType;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -35,18 +30,38 @@ public class HttpGW{
 
     public HttpGW(){
         this.http_responses = new HashMap<>();
-        this.fastfileservers = new HashMap<>();
+        this.fastfileservers = new ConcurrentHashMap<>();
         this.pdus = new HashMap<>();
         this.lock = new ReentrantLock();
         this.protocolCondition = new HashMap<>();
         this.nr_request = 1;
 
+        new Thread(() ->  {
+            try {
+                while(true) {
+                    Thread.sleep(2000);
+                    System.out.println("ver se os ffservers muuuuleram");
+                    /* check if all ffservers are still active */
+                    fastfileservers.forEach((port, address) -> {
+                        System.out.println("trying to connect to ffserver in port " + port);
+                        FSChunkProtocol protocol = new FSChunkProtocol(new PDU(0, 6, nr_request++), port, address);
+                        if(protocol.send() == 1) {
+                            System.out.println("timeout due to inactivity of ffserver in port " + port);
+                            fastfileservers.remove(port);
+                            protocolCondition.values().stream().forEach(p -> p.ffsDown(port));
+                        } else System.out.println("ffserver in port " + port + " is still active");
+                    });
+                }
+            } catch(InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public void controlPDU(PDU pdu){
         switch (pdu.getType()){
             case 0: /* HELLO */
-                new Thread(new FSChunkProtocol(new PDU(0, 01), pdu.getPort(), pdu.getInetAddress())).start();
+                new Thread(new FSChunkProtocol(new PDU(0, 1), pdu.getPort(), pdu.getInetAddress())).start();
                 break;
             case 2: /* PASS */
                 /* check for password */
@@ -64,6 +79,9 @@ public class HttpGW{
             case 5:  /* end of file transfer */
                 System.out.println("end of file detected");
                 http_response(pdu.getSeq_number(), new String(pdu.getData()));
+                break;
+            case 7: /* fast file server active */
+                dataPDU(pdu);
                 break;
         }
     }

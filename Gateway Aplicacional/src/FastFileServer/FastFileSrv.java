@@ -118,6 +118,10 @@ public class FastFileSrv {
                                             shutdown = true;
                                         }
                                         break;
+                                    case 6: /* gw is asking if im active*/
+                                        System.out.println("responding to active ?? ");
+                                        pdu_answer = new PDU(0,7,pdu.getSeq_number());
+                                        break;
                                     default:
                                         pdu_answer = pdu;
                                         break;

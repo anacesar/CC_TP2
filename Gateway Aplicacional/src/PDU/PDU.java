@@ -26,6 +26,14 @@ public class PDU{
         this.data = new byte[1448];
     }
 
+    public PDU(int flag, int type, int seq_number) {
+        //this.checksum = checksum;
+        this.flag = flag;
+        this.type = type;
+        this.seq_number = seq_number;
+        this.data = new byte[1448];
+    }
+
     public PDU(int flag, int type, int seq_number, byte[] data) {
         //this.checksum = checksum;
         this.flag = flag;
