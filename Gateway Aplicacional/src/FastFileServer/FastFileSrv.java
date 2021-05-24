@@ -7,11 +7,14 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.file.*;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 import Common.FSChunkProtocol;
@@ -22,10 +25,11 @@ public class FastFileSrv {
     private int port;
     private InetAddress server_address;
     private int my_port;
-    private InetAddress ffs_address;
     private String files_path;
     private DatagramSocket udp_socket;
     private boolean shutdown = false;
+
+    private Lock lock = new ReentrantLock();
 
     public FastFileSrv(int port, InetAddress sAddress, String files_path) throws SocketException{
         this.port = port;
@@ -34,7 +38,6 @@ public class FastFileSrv {
         this.files_path = Global.makePath(System.getProperty("user.dir") , files_path);
         this.my_port = new Random().nextInt((2000 - 1000) + 1) + 1000;
         this.udp_socket = new DatagramSocket(my_port);
-        this.ffs_address = this.udp_socket.getLocalAddress();
     }
 
     public long find(String fileName) {
@@ -89,6 +92,7 @@ public class FastFileSrv {
                     byte[] message = new byte[2000];
                     DatagramPacket receive = new DatagramPacket(message, message.length);
                     udp_socket.receive(receive);
+                    this.lock.lock();
                     PDU pdu = PDU.fromBytes(message, receive.getLength());
 
                     System.out.println("ffs received " + pdu.toString());
@@ -140,7 +144,7 @@ public class FastFileSrv {
                             new FSChunkProtocol(pdu_answer, port, server_address).send(this.udp_socket);
                         }
                     }).start();
-
+                    this.lock.unlock();
                 }
                 udp_socket.close();
             }catch(IOException  e){e.printStackTrace();}

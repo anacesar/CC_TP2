@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.lang.reflect.ParameterizedType;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -76,12 +78,15 @@ public class HttpGW{
         System.out.println("size of sorted arraylist " + pdus.get(seq_number).size());
         OutputStream out = this.http_responses.get(seq_number);
         long total_length = pdus.get(seq_number).stream().mapToLong(PDU::getDataSize).sum();
+        String headers = "HTTP/1.1 200 OK\nDate: " + LocalDateTime.now() ;
         try {
+
             //OutputStream os = new FileOutputStream(file);
             for(PDU pdu : pdus.get(seq_number)) {
                 //os.write(pdu.getData());
                 out.write(pdu.getData());
             }
+            //out.write(headers.getBytes());
 
             //System.out.println("PDU : " + pdu.getType() + " : " + new String(pdu.getData()));
             //System.out.println("Write "+ pdu.getData().length +" bytes to file.");
@@ -112,7 +117,6 @@ public class HttpGW{
     }
 
     public void receive(PDU pdu){
-
         /* check for flag */
         switch(pdu.getFlag()){
             case 0:

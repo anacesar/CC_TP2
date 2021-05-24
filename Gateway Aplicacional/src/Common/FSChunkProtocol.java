@@ -1,18 +1,13 @@
 package Common;
 
-import FastFileServer.FastFileSrv;
 import PDU.PDU;
-
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -24,20 +19,20 @@ public class FSChunkProtocol implements Runnable{
     private int port_answer;
     private InetAddress address;
     private PDU pdu;
-    private final List<PDU> answer_pdus;
+    private List<PDU> answer_pdus;
     /* condition to block until pdu is received */
     private Lock lock;
     private Condition empty_pdus;
 
     //private Map<InetAddress, Integer> fastfileservers;
     private Map<Integer, InetAddress> fastfileservers;
-    private Map<Integer, List<PDU>> datapdus;
+    private Map<Integer, Map<Integer,PDU>> datapdus;
 
     public FSChunkProtocol(PDU pdu, int port, InetAddress address){
         this.pdu = pdu;
         this.port_answer = port;
         this.address = address;
-        this.answer_pdus = new CopyOnWriteArrayList<>();
+        this.answer_pdus = new ArrayList<PDU>();
         this.lock = new ReentrantLock();
         this.empty_pdus = this.lock.newCondition();
 
@@ -45,7 +40,7 @@ public class FSChunkProtocol implements Runnable{
 
     public FSChunkProtocol(PDU pdu, HashMap<Integer, InetAddress> fastfileservers){
         this.pdu = pdu;
-        this.answer_pdus = new CopyOnWriteArrayList<PDU>();
+        this.answer_pdus = new ArrayList<PDU>();
         this.lock = new ReentrantLock();
         this.empty_pdus = this.lock.newCondition();
 
@@ -82,14 +77,32 @@ public class FSChunkProtocol implements Runnable{
     }
 
 
-    public long waitforpdus(int limit) throws InterruptedException {
+    public void checklostPDUs(int limit, int seq_number){
+        System.out.println("checking for lost pdus ");
+        Map<Integer, PDU> pdus_received = datapdus.get(seq_number);
+        for(int i = 2; i<limit+2; i++){
+            if(!pdus_received.containsKey(i)){
+                System.out.println("resending request for pdu "  + i);
+                //PDU pdu = dataPDU(filename, )
+                //int random = new Random().nextInt(datapdus.size()-1);
+
+            }
+        }
+    }
+
+
+    public long waitforpdus(int limit, int seq_number) throws InterruptedException {
         System.out.println("limit : " + limit);
         int i = 0;
-        this.lock.lock();
         long result = 0;
+        this.lock.lock();
         while(i<limit){ /* while not all chunks are received */
-            //System.out.println("waiting for transfer pdus...");
-            while(answer_pdus.size() == 0){ empty_pdus.await();}
+            System.out.println("waiting for transfer pdus...");
+            while(answer_pdus.size() == 0){
+                //if(i!=0) checklostPDUs(limit, seq_number);
+                empty_pdus.await(3000, TimeUnit.MILLISECONDS);
+            }
+            System.out.println("awake");
 
             PDU answer = answer_pdus.get(0);
             System.out.println("pdu received " + answer.toString());
@@ -103,10 +116,11 @@ public class FSChunkProtocol implements Runnable{
                 }else{ /* ffserver has file*/
                     result = size;
                 }
-            }else if(answer.getFlag() == 1 && answer.getType()>1){
+            }else{
                 System.out.println("adding chunk " + answer.getType() + " to map");
-                if(datapdus.get(answer.getSeq_number())==null) datapdus.put(answer.getSeq_number(), new ArrayList<>());
-                datapdus.get(answer.getSeq_number()).add(answer);
+                if(datapdus.get(answer.getSeq_number())==null) datapdus.put(answer.getSeq_number(), new HashMap<>());
+                datapdus.get(answer.getSeq_number()).putIfAbsent(answer.getType(),answer);
+
             }
             answer_pdus.remove(answer);
             i++;
@@ -148,18 +162,18 @@ public class FSChunkProtocol implements Runnable{
             int rest = filesize % DATASIZE > 0 ? 1 : 0;
             total_fragments = Math.round(filesize / DATASIZE) + rest;
             new Thread(() -> {
-                int nr_server = 0,nr_fragment = 2, offset = 0, final_total_fragments = Math.round(filesize / DATASIZE) + rest;
+                int nr_server, nr_fragment = 2, offset = 0, final_total_fragments = Math.round(filesize / DATASIZE) + rest;
                 //System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
-                while(nr_fragment <= final_total_fragments) {
+                while(nr_fragment <= final_total_fragments +2) {
                     nr_server = nr_fragment % nr_servers;
                     long size;
-                    if(nr_fragment == final_total_fragments) size = filesize % DATASIZE;
+                    if(nr_fragment == final_total_fragments +2) size = filesize % DATASIZE;
                     else size = DATASIZE;
 
                     PDU pdu_offset = dataPDU(filename, offset, size, nr_fragment);
                     sendPDU(udp_socket, pdu_offset, servers_port, nr_server);
-                    //System.out.println("protocol send chunk request ! nr_fragement : " + nr_fragment + " and datasize : " + size );
-                    nr_fragment++;
+                    //System.out.println("protocol send chunk request ! nr_fragement : " + nr_fragment );
+                    nr_fragment += 1;
                     offset += size;
                 }
             }).start();
@@ -168,7 +182,7 @@ public class FSChunkProtocol implements Runnable{
             sendPDU(udp_socket, pdu_offset, servers_port, 0);
         }
 
-        waitforpdus(total_fragments);
+        waitforpdus(total_fragments, pdu.getSeq_number());
 
 
         Map.Entry<Integer, InetAddress> entry = fastfileservers.entrySet().iterator().next();
@@ -183,7 +197,7 @@ public class FSChunkProtocol implements Runnable{
         }));
 
         /* wait for all ffservers to confirm */
-        long filesize = waitforpdus(fastfileservers.size());
+        long filesize = waitforpdus(fastfileservers.size(), -1);
 
         /* no one has file */
         if(fastfileservers.size() == 0 ) throw new InterruptedException("No Fast File Server has file! ");

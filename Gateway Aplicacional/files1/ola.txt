@@ -1,0 +1,2 @@
+ola
+este ficheiro e para testar se fragmenta ficheiros com tamanho menor do que 1448 :))
