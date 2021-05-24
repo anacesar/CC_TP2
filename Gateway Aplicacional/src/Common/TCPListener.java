@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 
 import static java.lang.System.out;
+import static java.lang.System.setOut;
+
 import Gateway.HttpGW;
 
 /* vai ficar a espera de conexoes pelo socket tcp */
@@ -36,6 +38,7 @@ public class TCPListener implements Runnable {
                 out.println("Comando Recebido: " + httprequest);
 
                 String[] sps= httprequest.split(" ");
+                for(int i = 0; i<sps.length ; i++) out.println(sps[i]);
                 String[] sp= sps[1].split("/");
                 String filename = sp[1];
                 out.println(filename);

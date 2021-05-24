@@ -11,6 +11,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -30,6 +31,7 @@ public class FSChunkProtocol implements Runnable{
 
     //private Map<InetAddress, Integer> fastfileservers;
     private Map<Integer, InetAddress> fastfileservers;
+    private Map<Integer, List<PDU>> datapdus;
 
     public FSChunkProtocol(PDU pdu, int port, InetAddress address){
         this.pdu = pdu;
@@ -38,16 +40,17 @@ public class FSChunkProtocol implements Runnable{
         this.answer_pdus = new CopyOnWriteArrayList<>();
         this.lock = new ReentrantLock();
         this.empty_pdus = this.lock.newCondition();
-        
+
     }
 
     public FSChunkProtocol(PDU pdu, HashMap<Integer, InetAddress> fastfileservers){
         this.pdu = pdu;
-        this.answer_pdus = new ArrayList<>();
+        this.answer_pdus = new CopyOnWriteArrayList<PDU>();
         this.lock = new ReentrantLock();
         this.empty_pdus = this.lock.newCondition();
 
         this.fastfileservers = fastfileservers;
+        this.datapdus = new HashMap<>();
     }
 
 
@@ -80,15 +83,16 @@ public class FSChunkProtocol implements Runnable{
 
 
     public long waitforpdus(int limit) throws InterruptedException {
+        System.out.println("limit : " + limit);
         int i = 0;
         this.lock.lock();
         long result = 0;
         while(i<limit){ /* while not all chunks are received */
-            System.out.println("waiting for transfer pdus...");
+            //System.out.println("waiting for transfer pdus...");
             while(answer_pdus.size() == 0){ empty_pdus.await();}
 
-            System.out.println("pdu received " + answer_pdus.get(0).toString());
             PDU answer = answer_pdus.get(0);
+            System.out.println("pdu received " + answer.toString());
             if(answer.getFlag() == 1 && answer.getType() == 1) {
                 ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
                 buffer.put(answer.getData());
@@ -97,15 +101,37 @@ public class FSChunkProtocol implements Runnable{
                 if(size == 0) { /* ffserver doesnt have file*/
                     fastfileservers.remove(answer.getPort());
                 }else{ /* ffserver has file*/
-                    System.out.println("File has length " + size);
                     result = size;
                 }
-                answer_pdus.remove(answer);
+            }else if(answer.getFlag() == 1 && answer.getType()>1){
+                System.out.println("adding chunk " + answer.getType() + " to map");
+                if(datapdus.get(answer.getSeq_number())==null) datapdus.put(answer.getSeq_number(), new ArrayList<>());
+                datapdus.get(answer.getSeq_number()).add(answer);
             }
+            answer_pdus.remove(answer);
             i++;
         }
+        System.out.println("size of answers pdus " + answer_pdus.size());
         this.lock.unlock();
         return result;
+    }
+
+
+    public PDU dataPDU(String filename, int offset, long size, int nr_fragment){
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + 2*Integer.BYTES + filename.length());
+        buffer.put(ByteBuffer.allocate(4).putInt(offset).array());
+        buffer.put(ByteBuffer.allocate(Long.BYTES).putLong(size).array());
+        buffer.put(ByteBuffer.allocate(4).putInt(filename.length()).array());
+        buffer.put(filename.getBytes());
+        return new PDU(1, nr_fragment , this.pdu.getSeq_number(), buffer.array());
+
+        //System.out.println("server " + nr_server + " ip : " + addr + " port : " + port);
+    }
+
+    public void sendPDU(DatagramSocket udp_socket, PDU pdu, List<Integer> servers_port, int nr_server){
+        InetAddress addr = fastfileservers.get(servers_port.get(nr_server));
+        int port = servers_port.get(nr_server);
+        send(udp_socket, pdu, addr, port);
     }
 
     public void fragmentPDU(DatagramSocket udp_socket, long filesize) throws InterruptedException {
@@ -114,39 +140,37 @@ public class FSChunkProtocol implements Runnable{
         System.out.println("ready to fragment with nr servers " + nr_servers);
 
         String filename = new String(pdu.getData());
-
+        List<Integer> servers_port = new ArrayList<>(fastfileservers.keySet());
         int total_fragments = 1;
+
         if(filesize > DATASIZE){
             /* needs fragmentation*/
-            int rest = filesize%DATASIZE > 0 ? 1 : 0;
-            int nr_fragment = 2, offset =0; total_fragments = Math.round(filesize/DATASIZE) + rest;
-            List<Integer> servers_port = new ArrayList<>(fastfileservers.keySet());
-            System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
+            int rest = filesize % DATASIZE > 0 ? 1 : 0;
+            total_fragments = Math.round(filesize / DATASIZE) + rest;
+            new Thread(() -> {
+                int nr_server = 0,nr_fragment = 2, offset = 0, final_total_fragments = Math.round(filesize / DATASIZE) + rest;
+                //System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
+                while(nr_fragment <= final_total_fragments) {
+                    nr_server = nr_fragment % nr_servers;
+                    long size;
+                    if(nr_fragment == final_total_fragments) size = filesize % DATASIZE;
+                    else size = DATASIZE;
 
-            while(nr_fragment <= total_fragments +2){
-                int nr_server = nr_fragment % nr_servers;
-                long size;
-                if(nr_fragment == total_fragments+2) size = filesize - (total_fragments-1) * DATASIZE; //filesize%DATASIZE
-                else size = DATASIZE;
-
-                ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + 2*Integer.BYTES + filename.length());
-                buffer.put(ByteBuffer.allocate(4).putInt(offset).array());
-                buffer.put(ByteBuffer.allocate(Long.BYTES).putLong(size).array());
-                buffer.put(ByteBuffer.allocate(4).putInt(filename.length()).array());
-                buffer.put(filename.getBytes());
-                PDU pdu_offset = new PDU(1, nr_fragment , this.pdu.getSeq_number(), buffer.array());
-
-                InetAddress addr = fastfileservers.get(servers_port.get(nr_server));
-                int port = servers_port.get(nr_server);
-                System.out.println("server " + nr_server + " ip : " + addr + " port : " + port);
-                send(udp_socket, pdu_offset, addr, port);
-                System.out.println("protocol send chunk request ! nr_fragement : " + nr_fragment + " and datasize : " + size );
-                nr_fragment++;
-                offset += size;
-            }
+                    PDU pdu_offset = dataPDU(filename, offset, size, nr_fragment);
+                    sendPDU(udp_socket, pdu_offset, servers_port, nr_server);
+                    //System.out.println("protocol send chunk request ! nr_fragement : " + nr_fragment + " and datasize : " + size );
+                    nr_fragment++;
+                    offset += size;
+                }
+            }).start();
+        }else{
+            PDU pdu_offset = dataPDU(filename, 0, filesize, 2);
+            sendPDU(udp_socket, pdu_offset, servers_port, 0);
         }
 
         waitforpdus(total_fragments);
+
+
         Map.Entry<Integer, InetAddress> entry = fastfileservers.entrySet().iterator().next();
         send(udp_socket, new PDU(0,5, pdu.getSeq_number(), filename.getBytes()), entry.getValue(), entry.getKey());
     }
@@ -162,7 +186,7 @@ public class FSChunkProtocol implements Runnable{
         long filesize = waitforpdus(fastfileservers.size());
 
         /* no one has file */
-        if(fastfileservers.size() == 0 ) ;
+        if(fastfileservers.size() == 0 ) throw new InterruptedException("No Fast File Server has file! ");
         else fragmentPDU(udp_socket, filesize);
 
     }
@@ -180,49 +204,13 @@ public class FSChunkProtocol implements Runnable{
                     break;
                 case 1:
                     /* reconhece os ffs que têm o ficheiro e divide os pacotes */
-                    broadcast_request(udp_socket);
+                    try{
+                        broadcast_request(udp_socket);}
+                    catch(InterruptedException e){}
                     break;
             }
-
-
-            //synchronized(answer_pdus){ wait();}
-            /*
-            while(answer_pdus.size()==0){
-                condition.await();
-            }*/
-            /*
-            this.lock.lock();
-            while(answer_pdus.size()==0){
-                this.empty_pdus.await();
-            }
-            this.lock.unlock();
-
-
-            System.out.println("protocol awake!! new message to nr seq "+ seq_Number);
-
-            byte[] message2 = answer_pdus.get(0);
-            int seq_Number2 = ByteBuffer.wrap(Arrays.copyOfRange(message, 0, 4)).getInt();
-            int port2 = ByteBuffer.wrap(Arrays.copyOfRange(message, 4, 8)).getInt();
-
-            System.out.println("2 ) protocol received message seq_number " + seq_Number2 + " and port " + port2);
-
-            udp_socket.send(new DatagramPacket(message2, message2.length, source_address, port2));
-            System.out.println("protocol sending message to ip " + source_address.getHostAddress() + " and port " + port2);
-
-
-            ByteBuffer packet = ByteBuffer.allocate(8);
-            packet.put(ByteBuffer.allocate(4).putInt(1234).array());
-            packet.put(ByteBuffer.allocate(4).putInt(port_answer).array());
-
-            byte[] message = packet.array();
-            udp_socket.send(new DatagramPacket(message, message.length, address_answer, port_answer));
-            System.out.println("Sending from protocol to ? : " + message);
-            */
-
-
             udp_socket.close();
-
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

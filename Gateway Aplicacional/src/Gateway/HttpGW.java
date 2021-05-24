@@ -29,6 +29,7 @@ public class HttpGW{
     private Lock lock;
     private HashMap<Integer, FSChunkProtocol> protocolCondition;
     private int nr_request;
+    private int i = 0;
 
     public HttpGW(){
         this.http_responses = new HashMap<>();
@@ -43,14 +44,11 @@ public class HttpGW{
     public void controlPDU(PDU pdu){
         switch (pdu.getType()){
             case 0: /* HELLO */
-                System.out.println("GW received fasfileserver HELLO");
                 new Thread(new FSChunkProtocol(new PDU(0, 01), pdu.getPort(), pdu.getInetAddress())).start();
                 break;
             case 2: /* PASS */
-                System.out.println("GW received fasfileserver PASS");
                 /* check for password */
                 PDU pdu_answer;
-                System.out.println("password atempt : "+ new String(pdu.getData()));
                 if(password.equals(new String(pdu.getData()))){
                     //fastfileservers.put(pdu.getInetAddress(), pdu.getPort());
                     fastfileservers.put(pdu.getPort(), pdu.getInetAddress());
@@ -69,15 +67,26 @@ public class HttpGW{
     }
 
     private void http_response(int seq_number, String filename) {
-        System.out.println("trying to get pdus with seq_number " + seq_number);
-        File file = new File(filename);
+        //System.out.println("trying to get pdus with seq_number " + seq_number);
+        //File file = new File(filename);
+        System.out.println("size before sorted arraylist " + pdus.get(seq_number).size());
+
+        pdus.get(seq_number).sort(Comparator.comparingInt(o -> o.getType()));
+
+        System.out.println("size of sorted arraylist " + pdus.get(seq_number).size());
+        OutputStream out = this.http_responses.get(seq_number);
+        long total_length = pdus.get(seq_number).stream().mapToLong(PDU::getDataSize).sum();
         try {
-            OutputStream os = new FileOutputStream(file);
-            for(PDU pdu : pdus.get(seq_number))
-                os.write(pdu.getData());
+            //OutputStream os = new FileOutputStream(file);
+            for(PDU pdu : pdus.get(seq_number)) {
+                //os.write(pdu.getData());
+                out.write(pdu.getData());
+            }
+
             //System.out.println("PDU : " + pdu.getType() + " : " + new String(pdu.getData()));
             //System.out.println("Write "+ pdu.getData().length +" bytes to file.");
-            os.close();
+            //os.close();
+            out.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -90,14 +99,14 @@ public class HttpGW{
         /* type is sequence number in this case */
         FSChunkProtocol protocol = protocolCondition.get(pdu.getSeq_number());
         if(protocol == null){  // create a new request
-            System.out.println("SOMETHING IS WROOOOOONG !!!!!!!");
+            //System.out.println("SOMETHING IS WROOOOOONG !!!!!!!");
             protocol = new FSChunkProtocol(pdu, pdu.getPort(), pdu.getInetAddress());
             protocolCondition.put(nr_request, protocol);
             pdus.put(nr_request, new ArrayList<>());
             new Thread(protocol).start();
         }else{
-            System.out.println("new pdu received for nr_request " + pdu.getSeq_number());
-            if(pdu.getType() > 1) pdus.get(pdu.getSeq_number()).add(pdu);
+            System.out.println("pdu "  + this.i + "received");
+            if(pdu.getType() > 1){ pdus.get(pdu.getSeq_number()).add(pdu); this.i++;}
             protocol.pdu(pdu);
         }
     }

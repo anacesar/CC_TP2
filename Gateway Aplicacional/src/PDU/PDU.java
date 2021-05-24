@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public class PDU implements Comparable<PDU> {
+public class PDU{
     //private long checksum;
     private int flag; /* 0 - Controlo & 1 - Dados */
     private int type; 
@@ -68,6 +68,8 @@ public class PDU implements Comparable<PDU> {
         return this.data;
     }
 
+    public long getDataSize(){ return this.data.length; }
+
     public void setData(byte[] data){
         this.data = data.clone();
     }
@@ -104,13 +106,10 @@ public class PDU implements Comparable<PDU> {
         return packet.array();
     }
 
-    public int compareTo(PDU o){
-        return this.getType() - o.getType();
-    }
-    
+
     public String toString(){
         StringBuilder sb = new StringBuilder();
-        sb.append("| PDU | \n");
+        sb.append("| PDU | ");
         sb.append("flag = " + flag + " type = " + type + " seq_number " + seq_number + " data = " + data);
 
         return sb.toString();
