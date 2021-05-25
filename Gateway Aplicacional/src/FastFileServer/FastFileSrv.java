@@ -68,10 +68,8 @@ public class FastFileSrv {
 
         try {
             RandomAccessFile raf = new RandomAccessFile(files_path + "/" + filename , "rw");
-
             raf.seek(offset);
             raf.read(data, 0, size);
-
         } catch(IOException e) {
             return null;
         }
@@ -104,7 +102,7 @@ public class FastFileSrv {
                             case 0 : /* control pdu */
                                 switch(pdu.getType()){
                                     case 1: /* receive CHECK*/
-                                        System.out.println("Bro da me a pass");
+                                        System.out.println("Please enter password");
                                         String pass = new Scanner(System.in).nextLine();
                                         pdu_answer = new PDU(0,2, 0, pass.getBytes());
                                         break;
@@ -117,7 +115,7 @@ public class FastFileSrv {
                                         }
                                         break;
                                     case 6: /* gw is asking if im active*/
-                                        System.out.println("responding to active ?? ");
+                                        System.out.println("responding to active im alive ");
                                         pdu_answer = new PDU(0,7,pdu.getSeq_number());
                                         break;
                                     default:

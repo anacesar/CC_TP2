@@ -181,7 +181,6 @@ public class FSChunkProtocol implements Runnable{
             total_fragments = Math.round(filesize / DATASIZE) + rest;
             new Thread(() -> {
                 int nr_server, nr_fragment = 2, offset = 0, final_total_fragments = Math.round(filesize / DATASIZE) + rest;
-                //System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
                 while(nr_fragment <= final_total_fragments +2) {
                     nr_server = nr_fragment % nr_servers;
                     long size;
@@ -190,7 +189,7 @@ public class FSChunkProtocol implements Runnable{
 
                     PDU pdu_offset = dataPDU(filename, offset, size, nr_fragment);
                     sendPDU(udp_socket, pdu_offset, servers_port, nr_server);
-                    //System.out.println("protocol send chunk request ! nr_fragement : " + nr_fragment );
+                    System.out.println("FSChunk  protocol send chunk request ! nr_fragement : " + nr_fragment );
                     nr_fragment += 1;
                     offset += size;
                 }
@@ -203,7 +202,7 @@ public class FSChunkProtocol implements Runnable{
         /* wait for data pdus */
         int rest = filesize % DATASIZE > 0 ? 1 : 0;
         if(filesize>DATASIZE) total_fragments = Math.round(filesize/DATASIZE) + rest;
-        System.out.println(total_fragments);
+        System.out.println("Nr of fragments for file " + filename + " : " + total_fragments);
         this.lock.lock();
         while(i<total_fragments){ /* while not all chunks are received */
             while(answer_pdus.size() == 0){

@@ -35,7 +35,6 @@ public class TCPListener implements Runnable {
                 String httprequest = breader.readLine();
 
                 String[] sps= httprequest.split(" ");
-                for(int i = 0; i<sps.length ; i++) out.println(sps[i]);
                 String[] sp= sps[1].split("/");
                 String filename = sp[1];
                 out.println(filename);

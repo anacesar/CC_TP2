@@ -5,9 +5,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import Common.FSChunkProtocol;
 import PDU.PDU;
 
@@ -90,7 +87,7 @@ public class HttpGW{
     }
 
     private void http_response(int seq_number, String filename) {
-        //System.out.println("trying to get pdus with seq_number " + seq_number);
+        System.out.println("EOF transfer detected " + filename);
         pdus.get(seq_number).sort(Comparator.comparingInt(o -> o.getType()));
 
         OutputStream out = this.http_responses.get(seq_number);
