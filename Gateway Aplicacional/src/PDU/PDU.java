@@ -42,15 +42,6 @@ public class PDU{
         this.data = data.clone();
     }
 
-    /*
-    public long getChecksum(){
-        return this.checksum;
-    }
-
-    public void setChecksum(long c){
-        this.checksum = c;
-    }
-    */
 
     public int getFlag(){
         return this.flag;

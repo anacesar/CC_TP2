@@ -1,11 +1,10 @@
 package Gateway;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,7 +22,6 @@ public class HttpGW{
 
     /* id_request  */
     private Map<Integer, List<PDU>> pdus;
-    private Lock lock;
     private HashMap<Integer, FSChunkProtocol> protocolCondition;
     private int nr_request;
     private int i = 0;
@@ -32,7 +30,6 @@ public class HttpGW{
         this.http_responses = new HashMap<>();
         this.fastfileservers = new ConcurrentHashMap<>();
         this.pdus = new HashMap<>();
-        this.lock = new ReentrantLock();
         this.protocolCondition = new HashMap<>();
         this.nr_request = 1;
 
@@ -40,24 +37,27 @@ public class HttpGW{
             try {
                 while(true) {
                     Thread.sleep(2000);
-                    System.out.println("ver se os ffservers muuuuleram");
-                    /* check if all ffservers are still active */
+                    /* check if all ffservers are still active*/
                     fastfileservers.forEach((port, address) -> {
-                        System.out.println("trying to connect to ffserver in port " + port);
-                        FSChunkProtocol protocol = new FSChunkProtocol(new PDU(0, 6, nr_request++), port, address);
+                        //System.out.println("trying to connect to ffserver in port " + port);
+                        int nr_request = i++;
+                        FSChunkProtocol protocol = new FSChunkProtocol(new PDU(0, 6, nr_request), port, address);
+                        protocolCondition.put(nr_request, protocol);
+                        pdus.put(nr_request, new ArrayList<>());
                         if(protocol.send() == 1) {
                             System.out.println("timeout due to inactivity of ffserver in port " + port);
                             fastfileservers.remove(port);
                             protocolCondition.values().stream().forEach(p -> p.ffsDown(port));
-                        } else System.out.println("ffserver in port " + port + " is still active");
+                        } //else System.out.println("ffserver in port " + port + " is still active");
                     });
                 }
             } catch(InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
-    }
 
+
+    }
     public void controlPDU(PDU pdu){
         switch (pdu.getType()){
             case 0: /* HELLO */
@@ -77,38 +77,27 @@ public class HttpGW{
                 new Thread(new FSChunkProtocol(pdu_answer, pdu.getPort(), pdu.getInetAddress())).start();
                 break;
             case 5:  /* end of file transfer */
-                System.out.println("end of file detected");
                 http_response(pdu.getSeq_number(), new String(pdu.getData()));
                 break;
             case 7: /* fast file server active */
                 dataPDU(pdu);
                 break;
+            case 8: /* file cant be downloaded */
+                try {
+                    http_responses.get(pdu.getSeq_number()).write("ERROR 505".getBytes());
+                }catch(IOException e){ e.printStackTrace();}
         }
     }
 
     private void http_response(int seq_number, String filename) {
         //System.out.println("trying to get pdus with seq_number " + seq_number);
-        //File file = new File(filename);
-        System.out.println("size before sorted arraylist " + pdus.get(seq_number).size());
-
         pdus.get(seq_number).sort(Comparator.comparingInt(o -> o.getType()));
 
-        System.out.println("size of sorted arraylist " + pdus.get(seq_number).size());
         OutputStream out = this.http_responses.get(seq_number);
-        long total_length = pdus.get(seq_number).stream().mapToLong(PDU::getDataSize).sum();
-        String headers = "HTTP/1.1 200 OK\nDate: " + LocalDateTime.now() ;
         try {
-
-            //OutputStream os = new FileOutputStream(file);
-            for(PDU pdu : pdus.get(seq_number)) {
-                //os.write(pdu.getData());
+            for(PDU pdu : pdus.get(seq_number))
                 out.write(pdu.getData());
-            }
-            //out.write(headers.getBytes());
 
-            //System.out.println("PDU : " + pdu.getType() + " : " + new String(pdu.getData()));
-            //System.out.println("Write "+ pdu.getData().length +" bytes to file.");
-            //os.close();
             out.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,7 +117,6 @@ public class HttpGW{
             pdus.put(nr_request, new ArrayList<>());
             new Thread(protocol).start();
         }else{
-            System.out.println("pdu "  + this.i + "received");
             if(pdu.getType() > 1){ pdus.get(pdu.getSeq_number()).add(pdu); this.i++;}
             protocol.pdu(pdu);
         }

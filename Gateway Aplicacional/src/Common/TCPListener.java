@@ -33,8 +33,6 @@ public class TCPListener implements Runnable {
 
                 BufferedReader breader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String httprequest = breader.readLine();
-                
-                out.println("Comando Recebido: " + httprequest);
 
                 String[] sps= httprequest.split(" ");
                 for(int i = 0; i<sps.length ; i++) out.println(sps[i]);
@@ -45,14 +43,10 @@ public class TCPListener implements Runnable {
                 /* filename to pdu */
                 /* ask fot http get */
                 this.gateway.file_request(filename, clientSocket.getOutputStream());
-
-
             }
             //serverSocket.close();
-
         }catch(IOException e) {
             e.printStackTrace();
         }
-
     }
 }
